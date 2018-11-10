@@ -67,7 +67,7 @@ class PiaotianSpider(object):
     def browser_bookContent(self, url, i, k):
         html = self.browser_html(url).decode('gb2312', 'ignore')
         # print(html)
-        bf = BeautifulSoup(html, features="html5lib")
+        bf = BeautifulSoup(html, features='lxml')
         for br in bf.find_all('br'):
             next_s = br.nextSibling
             if not (next_s and isinstance(next_s, NavigableString)):
