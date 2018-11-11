@@ -18,7 +18,7 @@ class PiaotianSpider(object):
         self.piaotian_url_base = 'http://piaotian.com'
         self.books = []
         self.contents = []
-        self.oldNum = [0, 0]
+        self.oldNum = [0 for n in range(0, len(book_list))]
         if os.path.exists('./book.json'):
             with open('./book.json', 'r', encoding="utf-8") as f:
                 # print(f.read())
@@ -67,7 +67,7 @@ class PiaotianSpider(object):
     def browser_bookContent(self, url, i, k):
         html = self.browser_html(url).decode('gb2312', 'ignore')
         # print(html)
-        bf = BeautifulSoup(html, features='lxml')
+        bf = BeautifulSoup(html, features="html.parser")
         for br in bf.find_all('br'):
             next_s = br.nextSibling
             if not (next_s and isinstance(next_s, NavigableString)):

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "python book.py & node server.js"
+    "start": "python book.py && node server.js"
   },
   "keywords": [],
   "author": "",
