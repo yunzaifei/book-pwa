@@ -23,16 +23,17 @@
 
 .Content {
   padding: 5px 10px 40px;
+  font-size: 18px;
 }
 
 .night {
   background-color: #040404;
-  color: #f4f4f4;
+  color: #a4a4a4;
 }
 
 .night-menu {
   background-color: #343434 !important;
-  color: #f4f4f4;
+  color: #a4a4a4;
 }
 
 .Content-title {
@@ -53,6 +54,7 @@
 
 .Content-item {
   text-indent: 20px;
+  line-height: 40px;
 }
 
 .Content-menu {
