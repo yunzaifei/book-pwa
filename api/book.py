@@ -3,6 +3,9 @@ import urllib.error
 import json
 import os
 from bs4 import BeautifulSoup, NavigableString, Tag
+import ssl
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36'}
@@ -15,7 +18,7 @@ book_list = [
 
 class PiaotianSpider(object):
     def __init__(self):
-        self.piaotian_url_base = 'http://piaotian.com'
+        self.piaotian_url_base = 'https://piaotian.com'
         self.books = []
         self.contents = []
         self.oldNum = [0 for n in range(0, len(book_list))]
