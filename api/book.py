@@ -1,5 +1,6 @@
-import urllib.request
-import urllib.error
+import urllib
+import requests
+import http.cookiejar as cookielib
 import json
 import os
 from bs4 import BeautifulSoup, NavigableString, Tag
@@ -7,21 +8,22 @@ import ssl
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
-headers = {
-    'user-agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36'}
-
-book_list = [
-    {'name': '天下豪商', 'url': 'https://www.piaotian.com/bookinfo/8/8918.html'},
-    {'name': '原来我是妖二代', 'url': 'https://www.piaotian.com/bookinfo/9/9795.html'}
-]
-
+userAgent = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:62.0) Gecko/20100101 Firefox/62.0'
 
 class PiaotianSpider(object):
     def __init__(self):
         self.piaotian_url_base = 'https://piaotian.com'
+        headers = { 'User-Agent': userAgent }
+        ptSession = requests.session()
+        ptSession.cookies = cookielib.LWPCookieJar(filename='cookie.txt')
+        ptSession.headers = headers
+        self.ptSession = ptSession
+        self.login()
+        self.getbooklist()
+
         self.books = []
         self.contents = []
-        self.oldNum = [0 for n in range(0, len(book_list))]
+        self.oldNum = [0 for n in range(0, len(self.book_list))]
         if os.path.exists('./book.json'):
             with open('./book.json', 'r', encoding="utf-8") as f:
                 # print(f.read())
@@ -31,16 +33,40 @@ class PiaotianSpider(object):
                     self.oldNum[i] = jsonf['books'][i]['num']
 
     def browser_bookInfo(self):
-        for i in range(0, len(book_list)):
-            html = self.browser_html(book_list[i]['url'])
+        for i in range(0, len(self.book_list)):
+            html = self.browser_html(self.book_list[i]['url'])
             bf = BeautifulSoup(html, features="html.parser")
             img = bf.select_one('#content img[align=right]')['src']
-            obj = {'id': i, 'name': book_list[i]['name'],
+            obj = {'id': i, 'name': self.book_list[i]['name'],
                    'img': img, 'num': 0, 'newTitle': ''}
             self.books.append(obj)
             to_url = bf.select_one('#content a')['href']
             print(to_url)
             self.browser_bookMenu(self, to_url, i)
+
+    # 模拟登录
+    def login(self):
+        url = self.piaotian_url_base + '/login.php?do=submit&jumpurl=/modules/article/bookcase.php'
+        username = input('输入用户名：')
+        password = input('输入密码：')
+        data = { 'username': username, 'password': password, 'action': 'login' }
+        self.ptSession.post(url=url, data=data, verify=False)
+        self.ptSession.cookies.save()
+
+    # 获取书架列表
+    def getbooklist(self):
+        books_url = self.piaotian_url_base + '/modules/article/bookcase.php'
+        response = self.ptSession.get(books_url, verify=False)
+        html = response.text
+        bf = BeautifulSoup(html, features="html.parser")
+        links = bf.select('.grid td a')
+        #print('links', links)
+        books = []
+        for i in range(0, len(links)):
+            if i%5 == 0:
+                print('href', links[i])
+                books.append({'name': links[i].text, 'url': links[i]['href']})
+        self.book_list = books
 
     @staticmethod
     def browser_bookMenu(self, url, i):
@@ -83,6 +109,7 @@ class PiaotianSpider(object):
 
     @staticmethod
     def browser_html(url):
+        headers = {'user-agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36'}
         try:
             response = urllib.request.Request(url, headers=headers)
             result = urllib.request.urlopen(response)
