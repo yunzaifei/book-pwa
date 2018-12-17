@@ -1,10 +1,8 @@
 import urllib
 import requests
 import http.cookiejar as cookielib
-import json
-import os
 from bs4 import BeautifulSoup, NavigableString, Tag
-import ssl
+import os, json, re, ssl
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -23,25 +21,28 @@ class PiaotianSpider(object):
 
         self.books = []
         self.contents = []
-        self.oldNum = [0 for n in range(0, len(self.book_list))]
+        self.oldNum = {}
         if os.path.exists('./book.json'):
             with open('./book.json', 'r', encoding="utf-8") as f:
                 # print(f.read())
                 jsonf = json.loads(f.read())
                 self.contents = jsonf['contents']
-                for i in range(0, len(jsonf['books'])):
-                    self.oldNum[i] = jsonf['books'][i]['num']
+                for b in jsonf['books']:
+                    self.oldNum[b['id']] = b['num']
 
+    # 获取书籍封面信息
     def browser_bookInfo(self):
         for i in range(0, len(self.book_list)):
+            url = self.book_list[i]['url']
+            id = re.findall(r'aid=(.+?)&', url)[0]
             html = self.browser_html(self.book_list[i]['url'])
             bf = BeautifulSoup(html, features="html.parser")
             img = bf.select_one('#content img[align=right]')['src']
-            obj = {'id': i, 'name': self.book_list[i]['name'],
+            obj = {'id': id, 'name': self.book_list[i]['name'],
                    'img': img, 'num': 0, 'newTitle': ''}
             self.books.append(obj)
             to_url = bf.select_one('#content a')['href']
-            print(to_url)
+            #print(to_url)
             self.browser_bookMenu(self, to_url, i)
 
     # 模拟登录
@@ -64,21 +65,26 @@ class PiaotianSpider(object):
         books = []
         for i in range(0, len(links)):
             if i%5 == 0:
-                print('href', links[i])
+                #print('href', links[i])
                 books.append({'name': links[i].text, 'url': links[i]['href']})
         self.book_list = books
 
+    # 获取书籍章节目录
     @staticmethod
     def browser_bookMenu(self, url, i):
         html = self.browser_html(url)
         bf = BeautifulSoup(html, features="html.parser")
         titles = bf.select('.centent li a')
+        id = self.books[i]['id']
+        startI = 0
+        if self.oldNum[id] is not None:
+            startI = self.oldNum[id]
         self.books[i]['num'] = len(titles)
         self.books[i]['newTitle'] = titles[-1].text
-        for j in range(self.oldNum[i], len(titles)):
+        for j in range(startI, len(titles)):
             print(titles[j].text)
             k = self.getContentIndex(self, i, j)
-            self.contents.insert(k, {'id': (str(i) + '_' + str(j)), 'bookId': i,
+            self.contents.insert(k, {'id': (id + '_' + str(j)), 'bookId': id,
                                   'index': j, 'title': titles[j].text, 'content': []})
             to_url = url + titles[j]['href']
             self.browser_bookContent(self, to_url, i, k)
@@ -91,7 +97,7 @@ class PiaotianSpider(object):
         k += j
         return k
 
-
+    # 获取书籍章节内容
     @staticmethod
     def browser_bookContent(self, url, i, k):
         html = self.browser_html(url).decode('gb2312', 'ignore')
